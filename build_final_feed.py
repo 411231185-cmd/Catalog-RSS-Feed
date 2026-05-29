@@ -124,7 +124,7 @@ def main(mode):
 
     log = []
     stats = {"exact": 0, "fuzzy": 0, "type": 0, "zaglushka": 0,
-             "enriched": 0, "placeholder": 0, "already_had_pic": 0}
+             "enriched": 0, "no_data": 0, "already_had_pic": 0}
 
     def process(m):
         o = m.group(0)
@@ -158,23 +158,25 @@ def main(mode):
         cat = cat.group(1) if cat else ""
         if cat in ("15", "16") and not re.search(r'\bz\s*=', desc) and oid in kin_byid:
             entry = kin_byid[oid]
+            parts = []
             if entry.get("z"):
-                parts = ["z = {}".format(entry["z"])]
-                if entry.get("m"):
-                    parts.append("m = {}".format(entry["m"]))
-                if entry.get("b"):
-                    parts.append("b = {} мм".format(entry["b"]))
-                ins = xml_escape("Параметры зацепления: " + ", ".join(parts) + ". ")
+                parts.append("z = {}".format(entry["z"]))
+            if entry.get("m"):
+                parts.append("m = {}".format(entry["m"]))
+            if entry.get("b"):
+                parts.append("b = {} мм".format(entry["b"]))
+            if parts:
+                tail = " (блок зубчатый)" if entry.get("block") else ""
+                ins = xml_escape("Параметры зацепления: " + ", ".join(parts) + tail + ". ")
                 newdesc = ins + desc.lstrip()
                 stats["enriched"] += 1
-                log.append("offer {} | {} | КИНЕМАТИКА: {} (источник: {})".format(
-                    oid, name, ", ".join(parts), entry.get("source", "")))
+                log.append("offer {} | {} | КИНЕМАТИКА: {}{} (источник: {})".format(
+                    oid, name, ", ".join(parts), tail, entry.get("source", "")))
+                o = o[:desc_m.start(2)] + newdesc + o[desc_m.end(2):]
             else:
-                ins = xml_escape("[ПРОВЕРИТЬ ПО ЧЕРТЕЖУ] ")
-                newdesc = ins + desc.lstrip()
-                stats["placeholder"] += 1
-                log.append("offer {} | {} | КИНЕМАТИКА: [ПРОВЕРИТЬ ПО ЧЕРТЕЖУ] (шифр {} не найден на источниках)".format(oid, name, s))
-            o = o[:desc_m.start(2)] + newdesc + o[desc_m.end(2):]
+                # шифр не найден ни в таблицах, ни на сайте — оставляем описание без кинематики
+                stats["no_data"] += 1
+                log.append("offer {} | {} | КИНЕМАТИКА: не найдена (шифр {}) — описание оставлено без z/m".format(oid, name, s))
         return o
 
     # индекс kinematics по id оффера
@@ -211,8 +213,8 @@ def main(mode):
         f.write("  Фото — по типу детали    : {}\n".format(stats["type"]))
         f.write("  Фото — заглушка          : {}\n".format(stats["zaglushka"]))
         f.write("  (уже имели фото, не тронуты): {}\n".format(stats["already_had_pic"]))
-        f.write("  Описания обогащены z/m    : {}\n".format(stats["enriched"]))
-        f.write("  Описания с плейсхолдером  : {}\n".format(stats["placeholder"]))
+        f.write("  Описания обогащены z/m (из XLS): {}\n".format(stats["enriched"]))
+        f.write("  Кинематика не найдена (оставлено без z/m): {}\n".format(stats["no_data"]))
         f.write("\nДЕТАЛИ:\n")
         for line in log:
             f.write(line + "\n")
