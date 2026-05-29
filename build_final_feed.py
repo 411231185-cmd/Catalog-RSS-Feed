@@ -18,6 +18,10 @@ KIN = os.path.join(REPO, "kinematics.json")
 RAW_BASE = "https://raw.githubusercontent.com/411231185-cmd/Catalog-RSS-Feed/main/Foto-Directus-Watermark/Foto-Directus-Latinica/"
 ZAGLUSHKA = "https://raw.githubusercontent.com/411231185-cmd/Catalog-RSS-Feed/main/Zaglushka.jpg"
 
+# Офферы, где в <name> после запятой идёт город/сторонний бренд — обрезаем по первой запятой.
+# 444 НЕ включён: там запятые — список совместимых станков, а не город/бренд.
+NAME_TRUNCATE_IDS = {"442", "443", "445", "446", "447", "448", "449", "450", "456"}
+
 CYR2LAT = {'м':'m','н':'n','к':'k','б':'b','а':'a','т':'t','с':'c','е':'e','о':'o',
            'р':'p','х':'x','в':'v','у':'y','і':'i','ь':'','я':'','л':'l','д':'d','ф':'f'}
 
@@ -131,6 +135,13 @@ def main(mode):
         oid = re.search(r'id="(\d+)"', o).group(1)
         name = re.search(r'<name>(.*?)</name>', o, re.S).group(1).strip()
         indent = "        "  # отступ полей оффера (8 пробелов)
+
+        # --- ЧИСТКА <name>: убрать город/сторонний бренд после запятой ---
+        if oid in NAME_TRUNCATE_IDS and "," in name:
+            new_name = name.split(",", 1)[0].strip()
+            o = o.replace("<name>" + name + "</name>", "<name>" + new_name + "</name>", 1)
+            log.append("offer {} | NAME: '{}' -> '{}'".format(oid, name, new_name))
+            name = new_name
 
         # --- ФОТО ---
         if '<picture>' in o:
