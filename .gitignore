@@ -1,0 +1,22 @@
+# >>> mdt-secret-guard (05.11.2026)
+# Файлы с ключами и паролями не попадают в git (слово владельца 05.11.2026). Ключи только в Kluchi.env ВНЕ репозитория.
+Kluchi.env
+.env
+.env.*
+!.env.example
+*.pkl
+*.pem
+*.p12
+*.pfx
+*.kdbx
+id_rsa
+id_rsa.*
+id_ed25519
+id_ed25519.*
+*cookies*.json
+*cookies*.pkl
+password*.json
+password*.txt
+credentials.json
+service-account*.json
+# <<< mdt-secret-guard
